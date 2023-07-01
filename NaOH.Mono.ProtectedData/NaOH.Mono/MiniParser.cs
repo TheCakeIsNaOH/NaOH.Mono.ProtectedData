@@ -47,22 +47,12 @@ namespace NaOH.Mono
         public interface IAttrList
         {
             int Length { get; }
-            bool IsEmpty { get; }
             string GetName(int i);
             string GetValue(int i);
-            string GetValue(string name);
-            void ChangeValue(string name, string newValue);
-            string[] Names { get; }
-            string[] Values { get; }
         }
 
-        public interface IMutableAttrList : IAttrList
+        private interface IMutableAttrList : IAttrList
         {
-            void Clear();
-            void Add(string name, string value);
-            void CopyFrom(IAttrList attrs);
-            void Remove(int i);
-            void Remove(string name);
         }
 
         public interface IHandler
@@ -73,10 +63,8 @@ namespace NaOH.Mono
             void OnChars(string ch);
             void OnEndParsing(MiniParser parser);
         }
-
-        public class HandlerAdapter : IHandler
+        private class HandlerAdapter : IHandler
         {
-            public HandlerAdapter() { }
             public void OnStartParsing(MiniParser parser) { }
             public void OnStartElement(string name, IAttrList attrs) { }
             public void OnEndElement(string name) { }
@@ -101,8 +89,7 @@ namespace NaOH.Mono
             TAB = 0xC,
             CR = 0xD,
             EOL = 0xE,
-            CHARS = 0xF,
-            UNKNOWN = 0x1F
+            CHARS = 0xF
         }
 
         private enum ActionCode : byte
@@ -124,14 +111,14 @@ namespace NaOH.Mono
             UNKNOWN = 0xF
         }
 
-        public class AttrListImpl : IMutableAttrList
+        private class AttrListImpl : IMutableAttrList
         {
-            protected ArrayList names;
-            protected ArrayList values;
+            private readonly ArrayList names;
+            private readonly ArrayList values;
 
             public AttrListImpl() : this(0) { }
 
-            public AttrListImpl(int initialCapacity)
+            private AttrListImpl(int initialCapacity)
             {
                 if (initialCapacity <= 0)
                 {
@@ -145,20 +132,9 @@ namespace NaOH.Mono
                 }
             }
 
-            public AttrListImpl(IAttrList attrs)
-            : this(attrs != null ? attrs.Length : 0)
-            {
-                if (attrs != null) this.CopyFrom(attrs);
-            }
-
             public int Length
             {
                 get { return names.Count; }
-            }
-
-            public bool IsEmpty
-            {
-                get { return this.Length != 0; }
             }
 
             public string GetName(int i)
@@ -181,30 +157,6 @@ namespace NaOH.Mono
                 return res;
             }
 
-            public string GetValue(string name)
-            {
-                return this.GetValue(names.IndexOf(name));
-            }
-
-            public void ChangeValue(string name, string newValue)
-            {
-                int i = names.IndexOf(name);
-                if (i >= 0 && i < this.Length)
-                {
-                    values[i] = newValue;
-                }
-            }
-
-            public string[] Names
-            {
-                get { return names.ToArray(typeof(string)) as string[]; }
-            }
-
-            public string[] Values
-            {
-                get { return values.ToArray(typeof(string)) as string[]; }
-            }
-
             public void Clear()
             {
                 names.Clear();
@@ -216,41 +168,13 @@ namespace NaOH.Mono
                 names.Add(name);
                 values.Add(value);
             }
-
-            public void Remove(int i)
-            {
-                if (i >= 0)
-                {
-                    names.RemoveAt(i);
-                    values.RemoveAt(i);
-                }
-            }
-
-            public void Remove(string name)
-            {
-                this.Remove(names.IndexOf(name));
-            }
-
-            public void CopyFrom(IAttrList attrs)
-            {
-                if (attrs != null && ((object)this == (object)attrs))
-                {
-                    this.Clear();
-                    int n = attrs.Length;
-                    for (int i = 0; i < n; i++)
-                    {
-                        this.Add(attrs.GetName(i), attrs.GetValue(i));
-                    }
-                }
-            }
         }
 
-        public class XMLError : Exception
+        private class XMLError : Exception
         {
-            protected string descr;
+            private readonly string descr;
             protected int line, column;
-            public XMLError() : this("Unknown") { }
-            public XMLError(string descr) : this(descr, -1, -1) { }
+
             public XMLError(string descr, int line, int column)
             : base(descr)
             {
@@ -258,8 +182,6 @@ namespace NaOH.Mono
                 this.line = line;
                 this.column = column;
             }
-            public int Line { get { return line; } }
-            public int Column { get { return column; } }
             public override string ToString()
             {
                 return (String.Format("{0} @ (line = {1}, col = {2})", descr, line, column));
@@ -292,7 +214,7 @@ namespace NaOH.Mono
         0xFFFF
     };
 
-        protected static string[] errors = {
+        private readonly static string[] errors = {
 		/* 0 */ "Expected element",
 		/* 1 */ "Invalid character in tag",
 		/* 2 */ "No '='",
@@ -303,10 +225,10 @@ namespace NaOH.Mono
 		/* 7 */ "Bad entity ref"
     };
 
-        protected int line;
-        protected int col;
-        protected int[] twoCharBuff;
-        protected bool splitCData;
+        private int line;
+        private int col;
+        private readonly int[] twoCharBuff;
+        private readonly bool splitCData;
 
         public MiniParser()
         {
@@ -315,13 +237,13 @@ namespace NaOH.Mono
             Reset();
         }
 
-        public void Reset()
+        private void Reset()
         {
             line = 0;
             col = 0;
         }
 
-        protected static bool StrEquals(string str, StringBuilder sb, int sbStart, int len)
+        private static bool StrEquals(string str, StringBuilder sb, int sbStart, int len)
         {
             if (len != str.Length) return false;
             for (int i = 0; i < len; i++)
@@ -331,12 +253,12 @@ namespace NaOH.Mono
             return true;
         }
 
-        protected void FatalErr(string descr)
+        private void FatalErr(string descr)
         {
             throw new XMLError(descr, this.line, this.col);
         }
 
-        protected static int Xlat(int charCode, int state)
+        private static int Xlat(int charCode, int state)
         {
             int p = state * INPUT_RANGE;
             int n = System.Math.Min(tbl.Length - p, INPUT_RANGE);
@@ -349,7 +271,7 @@ namespace NaOH.Mono
             return 0xFFF;
         }
 
-        public void Parse(IReader reader, IHandler handler)
+        protected void Parse(IReader reader, IHandler handler)
         {
             if (reader == null) throw new ArgumentNullException("reader");
             if (handler == null) handler = new HandlerAdapter();

@@ -45,7 +45,7 @@ namespace NaOH.Mono
         public static byte[] Unprotect(byte[] encryptedData, byte[] optionalEntropy, DataProtectionScope scope)
         {
             if (encryptedData == null)
-                throw new System.ArgumentNullException("encryptedData");
+                throw new ArgumentNullException("encryptedData");
 
             byte[] decdata = null;
 
@@ -184,8 +184,10 @@ namespace NaOH.Mono
                     {
                         lock (user_lock)
                         {
-                            CspParameters csp = new CspParameters();
-                            csp.KeyContainerName = "DAPI";
+                            CspParameters csp = new CspParameters
+                            {
+                                KeyContainerName = "DAPI"
+                            };
                             user = new NaOH.Mono.RSACryptoServiceProvider(1536, csp);
                         }
                     }
@@ -195,9 +197,11 @@ namespace NaOH.Mono
                     {
                         lock (machine_lock)
                         {
-                            CspParameters csp = new CspParameters();
-                            csp.KeyContainerName = "DAPI";
-                            csp.Flags = CspProviderFlags.UseMachineKeyStore;
+                            CspParameters csp = new CspParameters
+                            {
+                                KeyContainerName = "DAPI",
+                                Flags = CspProviderFlags.UseMachineKeyStore
+                            };
                             machine = new NaOH.Mono.RSACryptoServiceProvider(1536, csp);
                         }
                     }

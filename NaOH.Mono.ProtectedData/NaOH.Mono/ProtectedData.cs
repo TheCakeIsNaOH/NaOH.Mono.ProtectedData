@@ -28,6 +28,9 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+using System;
+using JetBrains.Annotations;
+
 namespace NaOH.Mono
 {
 
@@ -35,74 +38,29 @@ namespace NaOH.Mono
     // a.	Windows Data Protection
     //	http://msdn.microsoft.com/library/en-us/dnsecure/html/windataprotection-dpapi.asp?frame=true
 
-    public sealed class ProtectedData
+    public static class ProtectedData
     {
-
-        private ProtectedData()
-        {
-        }
-
+        [PublicAPI]
         public static byte[] Unprotect(byte[] encryptedData, byte[] optionalEntropy, DataProtectionScope scope)
         {
             if (encryptedData == null)
-                throw new System.ArgumentNullException("encryptedData");
-
-            // on Windows this is supported by CoreFX implementation
-            Check(scope);
-
-            switch (impl)
             {
-                case DataProtectionImplementation.ManagedProtection:
-                    try
-                    {
-                        return ManagedProtection.Unprotect(encryptedData, optionalEntropy, scope);
-                    }
-                    catch (System.Exception e)
-                    {
-                        string msg = "Data unprotection failed.";
-                        throw new System.Security.Cryptography.CryptographicException(msg, e);
-                    }
-                default:
-                    throw new System.PlatformNotSupportedException();
+                throw new ArgumentNullException("encryptedData");
             }
-        }
 
-        // private stuff
-
-        enum DataProtectionImplementation
-        {
-            Unknown,
-            Win32CryptoProtect,
-            ManagedProtection,
-            Unsupported = System.Int32.MinValue
-        }
-
-        private static DataProtectionImplementation impl;
-
-        private static void Detect()
-        {
-            System.OperatingSystem os = System.Environment.OSVersion;
-            switch (os.Platform)
+            if (Environment.OSVersion.Platform != PlatformID.Unix)
             {
-                case System.PlatformID.Unix:
-                    impl = DataProtectionImplementation.ManagedProtection;
-                    break;
-                case System.PlatformID.Win32NT:
-                default:
-                    impl = DataProtectionImplementation.Unsupported;
-                    break;
+                throw new PlatformNotSupportedException();
             }
-        }
 
-        private static void Check(DataProtectionScope scope)
-        {
-            switch (impl)
+            try
             {
-                case DataProtectionImplementation.Unknown:
-                    Detect();
-                    break;
-                case DataProtectionImplementation.Unsupported:
-                    throw new System.PlatformNotSupportedException();
+                return ManagedProtection.Unprotect(encryptedData, optionalEntropy, scope);
+            }
+            catch (Exception e)
+            {
+                string msg = "Data unprotection failed.";
+                throw new System.Security.Cryptography.CryptographicException(msg, e);
             }
         }
     }

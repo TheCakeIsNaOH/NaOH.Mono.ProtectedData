@@ -29,11 +29,8 @@
 using System;
 using System.Globalization;
 using System.IO;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography;
-using System.Security.Permissions;
 using System.Text;
 
 namespace NaOH.Mono
@@ -99,7 +96,7 @@ namespace NaOH.Mono
         private static bool _machinePathExists; // check at 1st use
         private static string _machinePath;
 
-        private CspParameters _params;
+        private readonly CspParameters _params;
         private string _keyvalue;
         private string _filename;
         private string _container;
@@ -111,7 +108,7 @@ namespace NaOH.Mono
         {
         }
 
-        public KeyPairPersistence(CspParameters parameters, string keyPair)
+        private KeyPairPersistence(CspParameters parameters, string keyPair)
         {
             if (parameters == null)
                 throw new ArgumentNullException("parameters");
@@ -122,21 +119,18 @@ namespace NaOH.Mono
 
         // properties
 
-        public string Filename
+        private string Filename
         {
             get
             {
                 if (_filename == null)
                 {
-                    _filename = String.Format(CultureInfo.InvariantCulture,
+                    _filename = string.Format(CultureInfo.InvariantCulture,
                         "[{0}][{1}][{2}].xml",
                         _params.ProviderType,
                         this.ContainerName,
                         _params.KeyNumber);
-                    if (UseMachineKeyStore)
-                        _filename = Path.Combine(MachinePath, _filename);
-                    else
-                        _filename = Path.Combine(UserPath, _filename);
+                    _filename = UseMachineKeyStore ?  Path.Combine(MachinePath, _filename) : Path.Combine(UserPath, _filename);
                 }
                 return _filename;
             }
@@ -145,17 +139,6 @@ namespace NaOH.Mono
         public string KeyValue
         {
             get { return _keyvalue; }
-            set
-            {
-                if (this.CanChange)
-                    _keyvalue = value;
-            }
-        }
-
-        // return a (read-only) copy
-        public CspParameters Parameters
-        {
-            get { return Copy(_params); }
         }
 
         // methods
@@ -176,24 +159,6 @@ namespace NaOH.Mono
             return result;
         }
 
-        public void Save()
-        {
-            // see NOTES
-            // FIXME		new FileIOPermission (FileIOPermissionAccess.Write, this.Filename).Assert ();
-
-            using (FileStream fs = File.Open(this.Filename, FileMode.Create))
-            {
-                StreamWriter sw = new StreamWriter(fs, Encoding.UTF8);
-                sw.Write(this.ToXml());
-                sw.Close();
-            }
-            // apply protection to newly created files
-            if (UseMachineKeyStore)
-                ProtectMachine(Filename);
-            else
-                ProtectUser(Filename);
-        }
-
         public void Remove()
         {
             // see NOTES
@@ -205,7 +170,7 @@ namespace NaOH.Mono
 
         // private static stuff
 
-        static object lockobj = new object();
+        static readonly object lockobj = new object();
 
         private static string UserPath
         {
@@ -274,7 +239,7 @@ namespace NaOH.Mono
                             catch (Exception e)
                             {
                                 string msg = "Could not create machine key store '{0}'.";
-                                throw new CryptographicException(String.Format(msg, _machinePath), e);
+                                throw new CryptographicException(string.Format(msg, _machinePath), e);
                             }
                             _machinePathExists = true;
                         }
@@ -295,56 +260,9 @@ namespace NaOH.Mono
             }
         }
 
-#if INSIDE_CORLIB
-		[MethodImplAttribute (MethodImplOptions.InternalCall)]
-		unsafe internal static extern bool _CanSecure (char* root);
-
-		[MethodImplAttribute (MethodImplOptions.InternalCall)]
-		unsafe internal static extern bool _ProtectUser (char* path);
-
-		[MethodImplAttribute (MethodImplOptions.InternalCall)]
-		unsafe internal static extern bool _ProtectMachine (char* path);
-
-		[MethodImplAttribute (MethodImplOptions.InternalCall)]
-		unsafe internal static extern bool _IsUserProtected (char* path);
-
-		[MethodImplAttribute (MethodImplOptions.InternalCall)]
-		unsafe internal static extern bool _IsMachineProtected (char* path);
-#else
-        // Mono.Security.dll assembly can't use the internal
-        // call (and still run with other runtimes)
-
-        // Note: Class is only available in Mono.Security.dll as
-        // a management helper (e.g. build a GUI app)
-
-        unsafe internal static bool _CanSecure(char* root)
-        {
-            return true;
-        }
-
-        unsafe internal static bool _ProtectUser(char* path)
-        {
-            return true;
-        }
-
-        unsafe internal static bool _ProtectMachine(char* path)
-        {
-            return true;
-        }
-
-        unsafe internal static bool _IsUserProtected(char* path)
-        {
-            return true;
-        }
-
-        unsafe internal static bool _IsMachineProtected(char* path)
-        {
-            return true;
-        }
-#endif
         // private stuff
 
-        unsafe private static bool CanSecure(string path)
+        private static bool CanSecure(string path)
         {
             // we assume POSIX filesystems can always be secured
 
@@ -354,72 +272,51 @@ namespace NaOH.Mono
             if ((platform == 4) || (platform == 128) || (platform == 6))
                 return true;
 
-            // while we ask the runtime for Windows OS
-            fixed (char* fpath = path)
-            {
-                return _CanSecure(fpath);
-            }
+            return true;
         }
 
-        unsafe private static bool ProtectUser(string path)
+        private static bool ProtectUser(string path)
         {
             // we cannot protect on some filsystem (like FAT)
             if (CanSecure(path))
             {
-                fixed (char* fpath = path)
-                {
-                    return _ProtectUser(fpath);
-                }
+                return true;
             }
             // but Mono still needs to run on them :(
             return true;
         }
 
-        unsafe private static bool ProtectMachine(string path)
+        private static bool ProtectMachine(string path)
         {
             // we cannot protect on some filsystem (like FAT)
             if (CanSecure(path))
             {
-                fixed (char* fpath = path)
-                {
-                    return _ProtectMachine(fpath);
-                }
+                return true;
             }
             // but Mono still needs to run on them :(
             return true;
         }
 
-        unsafe private static bool IsUserProtected(string path)
+        private static bool IsUserProtected(string path)
         {
             // we cannot protect on some filsystem (like FAT)
             if (CanSecure(path))
             {
-                fixed (char* fpath = path)
-                {
-                    return _IsUserProtected(fpath);
-                }
+                return true;
             }
             // but Mono still needs to run on them :(
             return true;
         }
 
-        unsafe private static bool IsMachineProtected(string path)
+        private static bool IsMachineProtected(string path)
         {
             // we cannot protect on some filsystem (like FAT)
             if (CanSecure(path))
             {
-                fixed (char* fpath = path)
-                {
-                    return _IsMachineProtected(fpath);
-                }
+                return true;
             }
             // but Mono still needs to run on them :(
             return true;
-        }
-
-        private bool CanChange
-        {
-            get { return (_keyvalue == null); }
         }
 
         private bool UseDefaultKeyContainer
@@ -467,9 +364,11 @@ namespace NaOH.Mono
         // we do not want any changes after receiving the csp informations
         private CspParameters Copy(CspParameters p)
         {
-            CspParameters copy = new CspParameters(p.ProviderType, p.ProviderName, p.KeyContainerName);
-            copy.KeyNumber = p.KeyNumber;
-            copy.Flags = p.Flags;
+            CspParameters copy = new CspParameters(p.ProviderType, p.ProviderName, p.KeyContainerName)
+            {
+                KeyNumber = p.KeyNumber,
+                Flags = p.Flags
+            };
             return copy;
         }
 
@@ -488,26 +387,6 @@ namespace NaOH.Mono
                 // Note: we do not read other stuff because
                 // it can't be changed after key creation
             }
-        }
-
-        private string ToXml()
-        {
-            // note: we do not use SecurityElement here because the
-            // keypair is a XML string (requiring parsing)
-            StringBuilder xml = new StringBuilder();
-            xml.AppendFormat("<KeyPair>{0}\t<Properties>{0}\t\t<Provider ", Environment.NewLine);
-            if ((_params.ProviderName != null) && (_params.ProviderName.Length != 0))
-            {
-                xml.AppendFormat("Name=\"{0}\" ", _params.ProviderName);
-            }
-            xml.AppendFormat("Type=\"{0}\" />{1}\t\t<Container ", _params.ProviderType, Environment.NewLine);
-            xml.AppendFormat("Name=\"{0}\" />{1}\t</Properties>{1}\t<KeyValue", this.ContainerName, Environment.NewLine);
-            if (_params.KeyNumber != -1)
-            {
-                xml.AppendFormat(" Id=\"{0}\" ", _params.KeyNumber);
-            }
-            xml.AppendFormat(">{1}\t\t{0}{1}\t</KeyValue>{1}</KeyPair>{1}", this.KeyValue, Environment.NewLine);
-            return xml.ToString();
         }
     }
 }

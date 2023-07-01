@@ -28,7 +28,6 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-using System;
 using System.Collections;
 using System.Security;
 
@@ -75,7 +74,7 @@ namespace NaOH.Mono
         // IHandler
 
         private SecurityElement current;
-        private Stack stack;
+        private readonly Stack stack;
 
         public void OnStartParsing(MiniParser parser) { }
 
