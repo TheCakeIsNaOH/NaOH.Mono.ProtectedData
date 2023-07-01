@@ -29,7 +29,7 @@
 
 namespace NaOH.Mono
 {
-    public abstract class PrimeGeneratorBase
+    internal abstract class PrimeGeneratorBase
     {
 
         public virtual ConfidenceFactor Confidence

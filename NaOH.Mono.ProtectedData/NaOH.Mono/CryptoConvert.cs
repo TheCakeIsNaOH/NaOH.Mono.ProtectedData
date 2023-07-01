@@ -35,12 +35,7 @@ using System.Text;
 namespace NaOH.Mono
 {
 
-#if INSIDE_CORLIB
-	internal
-#else
-    public
-#endif
-    sealed class CryptoConvert
+    internal sealed class CryptoConvert
     {
 
         private CryptoConvert()

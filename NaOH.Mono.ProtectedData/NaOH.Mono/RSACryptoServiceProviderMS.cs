@@ -28,7 +28,7 @@ namespace NaOH.Mono
     using System.Diagnostics.Contracts;
 
     [System.Runtime.InteropServices.ComVisible(true)]
-    public sealed partial class RSACryptoServiceProvider : RSA
+    internal sealed partial class RSACryptoServiceProvider : RSA
         , ICspAsymmetricAlgorithm
     {
         private static volatile CspProviderFlags s_UseMachineKeyStore = 0;

@@ -90,12 +90,7 @@ namespace NaOH.Mono
 	 * back. This is the same behaviour as CSP under Windows.
 	 */
 
-#if INSIDE_CORLIB
-	internal
-#else
-    public
-#endif
-    class KeyPairPersistence
+    internal class KeyPairPersistence
     {
 
         private static bool _userPathExists; // check at 1st use

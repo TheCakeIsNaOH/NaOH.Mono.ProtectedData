@@ -1,0 +1,5 @@
+NaOH.Mono.DataProtectionScope
+NaOH.Mono.DataProtectionScope.CurrentUser = 0 -> NaOH.Mono.DataProtectionScope
+NaOH.Mono.DataProtectionScope.LocalMachine = 1 -> NaOH.Mono.DataProtectionScope
+NaOH.Mono.ProtectedData
+static NaOH.Mono.ProtectedData.Unprotect(byte[] encryptedData, byte[] optionalEntropy, NaOH.Mono.DataProtectionScope scope) -> byte[]

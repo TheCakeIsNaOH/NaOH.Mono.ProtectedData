@@ -41,12 +41,7 @@ using System.Security.Cryptography;
 namespace NaOH.Mono
 {
 
-#if INSIDE_CORLIB
-	internal
-#else
-    public
-#endif
-    class BigInteger
+    internal class BigInteger
     {
 
         #region Data Storage

@@ -37,7 +37,7 @@ using System.Security.Cryptography;
 namespace NaOH.Mono
 {
 
-    public partial class RSACryptoServiceProvider
+    internal partial class RSACryptoServiceProvider
     {
         private const int PROV_RSA_FULL = 1;    // from WinCrypt.h
         private const int AT_KEYEXCHANGE = 1;
